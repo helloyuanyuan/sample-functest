@@ -1,8 +1,0 @@
-env: prod
-
-influxdb2:
-  url: http://localhost:8086
-  token: qOkrSal1CN00-TVoAWqD9inI94xhRyYT1j7JgIjg54afNaVhR7pFvQ65lnaR7G0cvSHB2zlxdyC1fNiwN45Ubg==
-  org: FuncTestOrg
-  bucket: FuncTestBucket
-  measurement: FuncTest

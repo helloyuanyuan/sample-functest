@@ -2,11 +2,8 @@ package functest
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -17,17 +14,13 @@ import (
 )
 
 const (
-	PROFILE_YAML = "profile.yaml"
+	MAIN_YAML = "main.yaml"
 )
 
-var config *viper.Viper
-var influxdb2Config *viper.Viper
+var mainConfig, envConfig *viper.Viper
 
 func init() {
-	cw, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
+	cw, _ := os.Getwd()
 
 	depth := 0
 	found := false
@@ -45,35 +38,22 @@ func init() {
 		}
 	}
 
-	if !found {
-		panic("no configuration file found")
-	}
+	mainConfig = LoadConfig(configDir, MAIN_YAML)
+	envConfig = LoadConfig(configDir, mainConfig.GetString("env")+".yaml")
 
-	viper := LoadConfig(configDir, PROFILE_YAML)
-	influxdb2Config = viper
-	env := viper.GetString("env")
-	if len(strings.TrimSpace(env)) == 0 {
-		log.Panic("No environment specified")
-	}
-
-	config = LoadConfig(configDir, env+".yaml")
 }
 
 func LoadConfig(path, file string) *viper.Viper {
 	viper := viper.New()
-	// viper.AddConfigPath(path)
 	viper.SetConfigFile(filepath.Join(path, file))
-	//viper.SetConfigType("yaml")
-	if err := viper.ReadInConfig(); err != nil {
-		log.Panicf("can not load file %s", filepath.Join(path, file))
-	}
+	viper.ReadInConfig()
 
 	return viper
 }
 
 func isConfigDir(target string) (string, bool) {
 	configDir := filepath.Join(target, "config")
-	fi, statErr := os.Stat(filepath.Join(configDir, PROFILE_YAML))
+	fi, statErr := os.Stat(filepath.Join(configDir, MAIN_YAML))
 	if statErr != nil {
 		return "", false
 	}
@@ -86,12 +66,9 @@ func httpGET(t *testing.T) (rawRsp *resty.Response) {
 	client.SetDebug(true)
 	rawRsp, err := client.R().
 		EnableTrace().
-		Get(config.GetString("service.url") + "/get")
+		Get(envConfig.GetString("service.url") + "/get")
 
-	printInfo(rawRsp, err)
-
-	influxdb2Write(t, rawRsp)
-	assert.Nil(t, err)
+	printWrite(t, rawRsp, err)
 	return
 }
 
@@ -103,27 +80,19 @@ func httpPOST(t *testing.T) (rawRsp *resty.Response) {
 		SetHeader("Content-Type", "application/json").
 		SetBody(`{"username":"user@test.com", "password":"12345"}`).
 		// SetResult(&AuthSuccess{}).
-		Post(config.GetString("service.url") + "/public/users/login")
+		Post(envConfig.GetString("service.url") + "/public/users/login")
 
-	printInfo(rawRsp, err)
-
-	influxdb2Write(t, rawRsp)
-	assert.Nil(t, err)
+	printWrite(t, rawRsp, err)
 	return
 }
 
-func printInfo(rawRsp *resty.Response, err error) {
-	// Explore response object
-	fmt.Println("Response Info:")
-	fmt.Println("  Error      :", err)
-	fmt.Println("  Status Code:", rawRsp.StatusCode())
-	fmt.Println("  Status     :", rawRsp.Status())
-	fmt.Println("  Proto      :", rawRsp.Proto())
-	fmt.Println("  Time       :", rawRsp.Time())
-	fmt.Println("  Received At:", rawRsp.ReceivedAt())
-	fmt.Println("  Body       :\n", rawRsp)
-	fmt.Println()
+func printWrite(t *testing.T, rawRsp *resty.Response, err error) {
+	assert.Nil(t, err)
+	printResult(rawRsp, err)
+	writeResult(t, rawRsp)
+}
 
+func printResult(rawRsp *resty.Response, err error) {
 	// Explore trace info
 	fmt.Println("Request Trace Info:")
 	ti := rawRsp.Request.TraceInfo()
@@ -141,25 +110,28 @@ func printInfo(rawRsp *resty.Response, err error) {
 	fmt.Println("  RemoteAddr    :", ti.RemoteAddr.String())
 }
 
-func influxdb2Write(t *testing.T, rawRsp *resty.Response) {
-	serverURL := influxdb2Config.GetString("influxdb2.url")
-	authToken := influxdb2Config.GetString("influxdb2.token")
-	org := influxdb2Config.GetString("influxdb2.org")
-	bucket := influxdb2Config.GetString("influxdb2.bucket")
+func writeResult(t *testing.T, rawRsp *resty.Response) {
+	serverURL := mainConfig.GetString("influxdb2.url")
+	authToken := mainConfig.GetString("influxdb2.token")
+	org := mainConfig.GetString("influxdb2.org")
+	bucket := mainConfig.GetString("influxdb2.bucket")
 
 	client := influxdb2.NewClient(serverURL, authToken)
 	writeAPI := client.WriteAPI(org, bucket)
 
-	point := influxdb2.NewPointWithMeasurement(influxdb2Config.GetString("influxdb2.measurement")).
-		AddTag("Env", influxdb2Config.GetString("env")).
+	point := influxdb2.NewPointWithMeasurement(mainConfig.GetString("influxdb2.measurement")).
+		SetTime(time.Now()).
+		AddTag("Env", mainConfig.GetString("env")).
+		AddField("Api", rawRsp.Request.URL).
+		AddTag("Duration", rawRsp.Time().String()).
 		AddTag("TestCase", t.Name()).
-		AddTag("ApiCall", rawRsp.Request.URL).
-		AddTag("StatusCode", strconv.Itoa(rawRsp.StatusCode())).
-		AddField("TimeDuration", rawRsp.Time()).
-		SetTime(time.Now())
+		AddTag("Status", rawRsp.Status())
 
 	writeAPI.WritePoint(point)
 	writeAPI.Flush()
 
 	defer client.Close()
+	fmt.Println("==============================================================================")
+	fmt.Println("Result Wrote To InfluxDB.")
+	fmt.Println("==============================================================================")
 }
