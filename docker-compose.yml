@@ -4,7 +4,7 @@ services:
 
   influxdb2:
     restart: always
-    image: influxdb:latest
+    image: influxdb:2.2.0
     container_name: influxdb2
     hostname: influxdb2
     networks:
@@ -27,7 +27,7 @@ services:
 
   grafana:
     restart: always
-    image: grafana/grafana:latest
+    image: grafana/grafana:8.5.0
     container_name: grafana
     hostname: grafana
     networks:
