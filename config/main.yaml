@@ -2,7 +2,7 @@ env: env.prod
 
 influxdb2:
   url: http://influxdb2:8086
-  token: 
+  token: FuncTestToken
   org: FuncTestOrg
   bucket: FuncTestBucket
   measurement: FuncTest
