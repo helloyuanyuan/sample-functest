@@ -13,15 +13,27 @@
 - 127.0.0.1    influxdb2
 - 127.0.0.1    grafana
 
-### 3. get InfluxDB2 token and set into ./config/main.yaml > influxdb2.token
+### 3. setup InfluxDB2 with api
 
-- InfluxDB2: <http://influxdb2:8086> admin / admin123
-- InfluxDB2: Data -> API Tokens (tab) -> Click "admin's Token" -> Copy the token to clipboard: "$COPIED_TOKEN"
+~~~
+curl -v POST \
+  http://influxdb2:8086/api/v2/setup \
+  --header 'Content-type: application/json' \
+  --data '{
+  "username": "admin",
+  "password": "admin123",
+  "token": "FuncTestToken",
+  "org": "FuncTestOrg",
+  "bucket": "FuncTestBucket",
+  "retentionPeriodHrs": 0,
+  "retentionPeriodSeconds": 0
+}'
+~~~
 
 ### 4. build docker image and run
 
 1. docker build -t functest:golang .
-2. docker run -it --name functest --network=sample-functest_functest functest:golang ./buildtest.sh env.prod "$COPIED_TOKEN"
+2. docker run -it --name functest --network=sample-functest_functest functest:golang ./buildtest.sh env.prod
 
 ### 5. check data in InfluxDB2
 
