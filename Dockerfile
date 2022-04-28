@@ -9,4 +9,4 @@ COPY . .
 ENTRYPOINT [ "/bin/bash" ]
 
 ## docker build -t functest:golang .
-## docker run -it --name functest --network=sample-functest_functest functest:golang ./buildtest.sh env.prod "$COPIED_TOKEN"
+## docker run -it --name functest --network=sample-functest_functest functest:golang ./buildtest.sh env.prod

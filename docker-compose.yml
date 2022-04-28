@@ -24,6 +24,8 @@ services:
     #   - DOCKER_INFLUXDB_INIT_PASSWORD=admin123
     #   - DOCKER_INFLUXDB_INIT_ORG=FuncTestOrg
     #   - DOCKER_INFLUXDB_INIT_BUCKET=FuncTestBucket
+    #   - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=FuncTestToken
+    #   - DOCKER_INFLUXDB_INIT_RETENTION=0
 
   grafana:
     restart: always
@@ -42,5 +44,3 @@ services:
 
 networks:
   functest:
-
-    # docker-compose -f docker-compose.yml up -d

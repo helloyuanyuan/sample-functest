@@ -2,20 +2,20 @@
 
 ## Steps
 
-### 1. run InfluxDB2, Grafana with docker compose file
-
-   docker-compose -f docker-compose.yml up -d
-
-### 2. update hosts file if run on localmachine
+### 1. update hosts file if run on local machine
 
    vi /etc/hosts
 
 - 127.0.0.1    influxdb2
 - 127.0.0.1    grafana
 
+### 2. run InfluxDB2, Grafana with docker compose file
+
+   docker-compose -f docker-compose.yml up -d
+
 ### 3. setup InfluxDB2 with api
 
-~~~
+~~~bash
 curl -v POST \
   http://influxdb2:8086/api/v2/setup \
   --header 'Content-type: application/json' \
@@ -46,5 +46,5 @@ curl -v POST \
 - select InfluxDB as template
 - select Flux as language
 - close basic auth
-- Add URL: <http://influxdb2:8086> -> Org = FuncTestOrg -> Token = "$COPIED_TOKEN" -> Bucket = FuncTestBucket -> save & test
+- Add URL: <http://influxdb2:8086> -> Org = FuncTestOrg -> Token = "FuncTestToken" -> Bucket = FuncTestBucket -> save & test
 - create new dashboard and select InfluxDB data source
