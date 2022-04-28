@@ -18,6 +18,8 @@ const (
 )
 
 var mainConfig, envConfig *viper.Viper
+var influxdb2URL, authToken, org, bucket, measurement string
+var serviceURL string
 
 func init() {
 	cw, _ := os.Getwd()
@@ -41,6 +43,14 @@ func init() {
 	mainConfig = LoadConfig(configDir, MAIN_YAML)
 	envConfig = LoadConfig(configDir, mainConfig.GetString("env")+".yaml")
 
+	influxdb2URL = mainConfig.GetString("influxdb2.url")
+	authToken = mainConfig.GetString("influxdb2.token")
+	org = mainConfig.GetString("influxdb2.org")
+	bucket = mainConfig.GetString("influxdb2.bucket")
+	measurement = mainConfig.GetString("influxdb2.measurement")
+
+	serviceURL = envConfig.GetString("service.url")
+
 }
 
 func LoadConfig(path, file string) *viper.Viper {
@@ -61,38 +71,13 @@ func isConfigDir(target string) (string, bool) {
 	return configDir, fi.Mode().IsRegular()
 }
 
-func httpGET(t *testing.T) (rawRsp *resty.Response) {
-	client := resty.New()
-	client.SetDebug(true)
-	rawRsp, err := client.R().
-		EnableTrace().
-		Get(envConfig.GetString("service.url") + "/get")
-
-	printWrite(t, rawRsp, err)
-	return
-}
-
-func httpPOST(t *testing.T) (rawRsp *resty.Response) {
-	client := resty.New()
-	client.SetDebug(true)
-	rawRsp, err := client.R().
-		EnableTrace().
-		SetHeader("Content-Type", "application/json").
-		SetBody(`{"username":"user@test.com", "password":"12345"}`).
-		// SetResult(&AuthSuccess{}).
-		Post(envConfig.GetString("service.url") + "/public/users/login")
-
-	printWrite(t, rawRsp, err)
-	return
-}
-
 func printWrite(t *testing.T, rawRsp *resty.Response, err error) {
 	assert.Nil(t, err)
-	printResult(rawRsp, err)
+	printResult(rawRsp)
 	writeResult(t, rawRsp)
 }
 
-func printResult(rawRsp *resty.Response, err error) {
+func printResult(rawRsp *resty.Response) {
 	// Explore trace info
 	fmt.Println("Request Trace Info:")
 	ti := rawRsp.Request.TraceInfo()
@@ -111,15 +96,10 @@ func printResult(rawRsp *resty.Response, err error) {
 }
 
 func writeResult(t *testing.T, rawRsp *resty.Response) {
-	serverURL := mainConfig.GetString("influxdb2.url")
-	authToken := mainConfig.GetString("influxdb2.token")
-	org := mainConfig.GetString("influxdb2.org")
-	bucket := mainConfig.GetString("influxdb2.bucket")
-
-	client := influxdb2.NewClient(serverURL, authToken)
+	client := influxdb2.NewClient(influxdb2URL, authToken)
 	writeAPI := client.WriteAPI(org, bucket)
 
-	point := influxdb2.NewPointWithMeasurement(mainConfig.GetString("influxdb2.measurement")).
+	point := influxdb2.NewPointWithMeasurement(measurement).
 		SetTime(time.Now()).
 		AddTag("Env", mainConfig.GetString("env")).
 		AddField("Api", rawRsp.Request.URL).

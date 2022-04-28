@@ -13,7 +13,7 @@
 
    docker-compose -f docker-compose.yml up -d
 
-### 3. setup InfluxDB2 with api
+### 3. setup InfluxDB2 with api if not set environment propertyies in step 2
 
 ~~~bash
 curl -v POST \
@@ -32,8 +32,18 @@ curl -v POST \
 
 ### 4. build docker image and run
 
+~~~docker
 1. docker build -t functest:golang .
 2. docker run -it --name functest --network=sample-functest_functest functest:golang ./buildtest.sh env.prod
+~~~
+
+#### Optional Go test commands
+
+~~~bash
+go test -v ./functest # run tests under functest package
+go test -v -run TestDemo # run test specific to "TestDemo"
+go clean -testcache # clean test cache
+~~~
 
 ### 5. check data in InfluxDB2
 
