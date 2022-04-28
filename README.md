@@ -2,7 +2,7 @@
 
 ## Steps
 
-### 1. update hosts file if run on local machine
+### 1. (Optinal) update hosts file if run on local machine
 
    vi /etc/hosts
 
@@ -13,7 +13,7 @@
 
    docker-compose -f docker-compose.yml up -d
 
-### 3. setup InfluxDB2 with api if not set environment propertyies in step 2
+### 3. (Optinal) setup InfluxDB2 with api if not set environment propertyies in step 2
 
 ~~~bash
 curl -v POST \
@@ -37,7 +37,7 @@ curl -v POST \
 2. docker run -it --name functest --network=sample-functest_functest functest:golang ./buildtest.sh env.prod
 ~~~
 
-#### Optional Go test commands
+#### (Optinal) Go test commands
 
 ~~~bash
 go test -v ./functest # run tests under functest package
@@ -49,7 +49,7 @@ go clean -testcache # clean test cache
 
 - InfluxDB2: check test data be generated in bucket = FuncTestBucket & measurement = FuncTest
 
-### 6. config Grafana + InfluxDB2 (Optinal)
+### 6. (Optinal) config Grafana + InfluxDB2
 
 - Grafana: <http://grafana:3000> admin / admin -> skip change password
 - config -> data source -> add data source
